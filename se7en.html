@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SE7EN — Yedi Kapı</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    color: #d8c0a0;
+    font-family: ui-serif, Georgia, "Times New Roman", serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  canvas { display: block; cursor: crosshair; }
+
+  #title {
+    position: fixed;
+    top: 18px; left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 1.1em;
+    font-size: 12px;
+    text-transform: uppercase;
+    pointer-events: none;
+    z-index: 5;
+    color: #c9a07a;
+    text-shadow: 0 0 10px rgba(0,0,0,0.9);
+  }
+  #title .brand {
+    font-family: ui-monospace, "SF Mono", "Cascadia Mono", "Consolas", "Courier New", monospace;
+    letter-spacing: 0.35em;
+    padding-right: 0;
+    margin-right: -0.35em;
+    font-weight: 600;
+    color: #e8b07a;
+    font-size: 1.05em;
+  }
+  #title .brand span {
+    display: inline;
+  }
+  #title .dot {
+    color: #6a4a32;
+    font-size: 1.2em;
+  }
+  #title .sub {
+    letter-spacing: 0.45em;
+    color: #b08560;
+    font-weight: 300;
+  }
+
+  #sin-label {
+    position: fixed;
+    top: 50px; left: 50%;
+    transform: translate(-50%, 0);
+    text-align: center;
+    pointer-events: none;
+    z-index: 4;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    font-family: ui-serif, Georgia, serif;
+  }
+  #sin-label .tr {
+    display: block;
+    font-size: 32px;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: #ffd8a0;
+    text-shadow: 0 0 22px rgba(255, 130, 60, 0.7), 0 0 4px #000;
+    font-weight: 300;
+    padding-left: 0.5em;
+  }
+  #sin-label .en {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.55em;
+    color: rgba(255, 200, 160, 0.7);
+    margin-top: 8px;
+    font-style: italic;
+    text-transform: uppercase;
+    padding-left: 0.55em;
+  }
+
+  #hint {
+    position: fixed;
+    bottom: 16px; left: 0; right: 0;
+    text-align: center;
+    font-size: 11px;
+    color: #b58560;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    pointer-events: none;
+    z-index: 5;
+    text-shadow: 0 0 6px rgba(0,0,0,1);
+    padding-left: 0.3em;
+  }
+
+  #bubble {
+    position: fixed;
+    background: #f4ecd8;
+    color: #1a1410;
+    padding: 9px 20px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-style: italic;
+    border: 2px solid #1a1410;
+    box-shadow:
+      0 8px 22px rgba(0,0,0,0.7),
+      inset 0 0 0 1px rgba(255,255,255,0.5);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10;
+    white-space: nowrap;
+    transform: translate(2px, calc(-100% - 2px)) scale(0.6);
+    transform-origin: bottom left;
+    transition: opacity 0.18s ease, transform 0.22s cubic-bezier(.34,1.56,.64,1);
+  }
+  #bubble.show {
+    opacity: 1;
+    transform: translate(2px, calc(-100% - 2px)) scale(1);
+  }
+  #bubble.shake { animation: tremble 1s ease-out; }
+  @keyframes tremble {
+    0%, 100% { translate: 0 0; }
+    8%  { translate: -2px 1px; } 16% { translate: 2px -1px; }
+    24% { translate: -2px -2px; } 34% { translate: 2px 2px; }
+    44% { translate: -1px -1px; } 54% { translate: 1px 2px; }
+    64% { translate: -2px 0; }    74% { translate: 2px -1px; }
+    84% { translate: -1px 1px; }  94% { translate: 1px 0; }
+  }
+
+  #intro {
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center, #160604 0%, #000 75%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    transition: opacity 0.9s ease;
+  }
+  #intro h1 {
+    font-family: ui-monospace, "SF Mono", "Cascadia Mono", "Consolas", "Courier New", monospace;
+    letter-spacing: 0.4em;
+    margin-right: -0.4em;
+    font-size: clamp(40px, 8vw, 78px);
+    font-weight: 400;
+    color: #d68a4a;
+    text-shadow: 0 0 30px rgba(220, 110, 50, 0.55);
+  }
+  #intro h1 span {
+    display: inline;
+  }
+  #intro p {
+    margin-top: 24px;
+    color: #7a4a32;
+    letter-spacing: 0.3em;
+    font-size: 13px;
+    text-transform: uppercase;
+  }
+  #intro button {
+    margin-top: 46px;
+    background: transparent;
+    color: #d68a4a;
+    border: 1px solid #d68a4a;
+    padding: 13px 36px;
+    letter-spacing: 0.4em;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+  }
+  #intro button:hover {
+    background: #d68a4a; color: #000;
+    box-shadow: 0 0 30px rgba(220, 110, 50, 0.6);
+  }
+  #intro.hidden { opacity: 0; pointer-events: none; }
+
+  #fallback {
+    position: fixed; inset: 0;
+    background: #000; color: #d68a4a;
+    font-family: ui-serif, Georgia, serif;
+    display: none;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 40px;
+    z-index: 200; letter-spacing: 0.15em; line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+  <div id="title">
+    <span class="brand"><span>S</span><span>E</span><span>7</span><span>E</span><span>N</span></span>
+    <span class="dot">·</span>
+    <span class="sub">Yedi Büyük Günah</span>
+  </div>
+
+  <div id="sin-label">
+    <span class="tr"></span>
+    <span class="en"></span>
+  </div>
+
+  <div id="bubble">What's in the box?</div>
+  <div id="hint">FAREYİ HAREKET ETTİR · KUTUYA TIKLA · YÖN TUŞLARI</div>
+
+  <div id="intro">
+    <h1><span>S</span><span>E</span><span>7</span><span>E</span><span>N</span></h1>
+    <p>Yedi kapı. Yedi günah. Bir kutu.</p>
+    <button id="start">Başla</button>
+  </div>
+  <div id="fallback">
+    Three.js yüklenemedi.<br/>İnternete bağlandıktan sonra sayfayı yenile.
+  </div>
+
+  <script src="https://unpkg.com/three@0.149.0/build/three.min.js"></script>
+  <script>
+  (() => {
+    if (!window.THREE) {
+      document.getElementById('fallback').style.display = 'flex';
+      document.getElementById('intro').style.display = 'none';
+      return;
+    }
+
+    const intro    = document.getElementById('intro');
+    const startBtn = document.getElementById('start');
+    const bubble   = document.getElementById('bubble');
+    const sinLabel = document.getElementById('sin-label');
+    const sinTr    = sinLabel.querySelector('.tr');
+    const sinEn    = sinLabel.querySelector('.en');
+
+    const ROOM_RADIUS = 320;
+    const DOOR_WIDTH  = 110;
+    const WALL_HEIGHT = 50;
+    const DOOR_COUNT  = 7;
+    const CLOSE_START = 130;
+    const CLOSE_END   = 30;
+    const DOOR_LERP   = 22;
+
+    const SINS = [
+      { tr: 'Kibir',       en: 'Pride',    hex: 0x7c3aed },
+      { tr: 'Açgözlülük',  en: 'Greed',    hex: 0xeab308 },
+      { tr: 'Şehvet',      en: 'Lust',     hex: 0xdc2626 },
+      { tr: 'Kıskançlık',  en: 'Envy',     hex: 0x15803d },
+      { tr: 'Oburluk',     en: 'Gluttony', hex: 0xea580c },
+      { tr: 'Öfke',        en: 'Wrath',    hex: 0x7f1d1d },
+      { tr: 'Tembellik',   en: 'Sloth',    hex: 0x64748b },
+    ];
+
+    const PLAYER_BASE_HEX = 0xfff5dd;
+    const BOX_BASE_HEX    = 0xc88a3a;
+    const playerBaseColor   = new THREE.Color(PLAYER_BASE_HEX);
+    const playerTargetColor = new THREE.Color(PLAYER_BASE_HEX);
+    const boxBaseColor      = new THREE.Color(BOX_BASE_HEX);
+    const boxTargetColor    = new THREE.Color(BOX_BASE_HEX);
+    const _tmpColor         = new THREE.Color();
+    let   currentNearestSin = null;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+    scene.fog = new THREE.Fog(0x070302, 700, 1700);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.toneMapping = THREE.LinearToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    document.body.appendChild(renderer.domElement);
+    const canvas = renderer.domElement;
+
+    const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 1, 3000);
+
+    function fitCamera() {
+      const roomR = ROOM_RADIUS + 30;
+      const fovV = camera.fov * Math.PI / 180;
+      const fovH = 2 * Math.atan(Math.tan(fovV / 2) * camera.aspect);
+      const minFov = Math.min(fovV, fovH);
+      const dist = roomR / Math.tan(minFov / 2);
+      const tilt = 0.13;
+      camera.position.set(0, dist * Math.cos(tilt), dist * Math.sin(tilt));
+      camera.lookAt(0, 0, 0);
+    }
+    function resize() {
+      renderer.setSize(innerWidth, innerHeight);
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      fitCamera();
+    }
+    resize();
+    addEventListener('resize', resize);
+
+    const floorGeom = new THREE.CircleGeometry(ROOM_RADIUS, 96);
+    floorGeom.rotateX(-Math.PI / 2);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x3a200c,
+      roughness: 0.85,
+      metalness: 0.0,
+    });
+    const floor = new THREE.Mesh(floorGeom, floorMat);
+    scene.add(floor);
+
+    const groundPlaneMath = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+    const wallMat = new THREE.MeshStandardMaterial({
+      color: 0x140805,
+      roughness: 0.95,
+      metalness: 0,
+    });
+    const doorAngHalf = (DOOR_WIDTH / 2) / ROOM_RADIUS;
+    const segPerArc = 16;
+
+    for (let i = 0; i < DOOR_COUNT; i++) {
+      const aDoorThis = i * 2 * Math.PI / DOOR_COUNT - Math.PI / 2;
+      const aDoorNext = ((i + 1) % DOOR_COUNT) * 2 * Math.PI / DOOR_COUNT - Math.PI / 2;
+      let aStart = aDoorThis + doorAngHalf;
+      let aEnd   = aDoorNext - doorAngHalf;
+      while (aEnd <= aStart) aEnd += Math.PI * 2;
+
+      for (let j = 0; j < segPerArc; j++) {
+        const a1 = aStart + (aEnd - aStart) * (j / segPerArc);
+        const a2 = aStart + (aEnd - aStart) * ((j + 1) / segPerArc);
+        const x1 = Math.cos(a1) * ROOM_RADIUS, z1 = Math.sin(a1) * ROOM_RADIUS;
+        const x2 = Math.cos(a2) * ROOM_RADIUS, z2 = Math.sin(a2) * ROOM_RADIUS;
+        const segLen = Math.hypot(x2 - x1, z2 - z1);
+        const segAng = Math.atan2(z2 - z1, x2 - x1);
+        const wall = new THREE.Mesh(
+          new THREE.BoxGeometry(segLen + 0.4, WALL_HEIGHT, 4.5),
+          wallMat
+        );
+        wall.position.set((x1 + x2) / 2, WALL_HEIGHT / 2, (z1 + z2) / 2);
+        wall.rotation.y = -segAng;
+        scene.add(wall);
+      }
+    }
+
+    function makeRadialGradTexture() {
+      const c = document.createElement('canvas');
+      c.width = c.height = 128;
+      const g = c.getContext('2d');
+      const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+      grad.addColorStop(0,    'rgba(255, 230, 180, 1)');
+      grad.addColorStop(0.30, 'rgba(255, 130, 50, 0.85)');
+      grad.addColorStop(0.7,  'rgba(170, 50, 15, 0.35)');
+      grad.addColorStop(1,    'rgba(0, 0, 0, 0)');
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 128, 128);
+      const tex = new THREE.CanvasTexture(c);
+      tex.minFilter = THREE.LinearFilter;
+      return tex;
+    }
+    const sharedPadTex = makeRadialGradTexture();
+
+    const doorObjs = [];
+    const lintelMat = new THREE.MeshStandardMaterial({ color: 0x281208, roughness: 0.9 });
+    const leafMat   = new THREE.MeshStandardMaterial({ color: 0x140804, roughness: 0.92 });
+
+    for (let i = 0; i < DOOR_COUNT; i++) {
+      const aDoor = i * 2 * Math.PI / DOOR_COUNT - Math.PI / 2;
+      const cx = Math.cos(aDoor) * ROOM_RADIUS;
+      const cz = Math.sin(aDoor) * ROOM_RADIUS;
+
+      const group = new THREE.Group();
+      group.position.set(cx, 0, cz);
+      group.rotation.y = -aDoor;
+      scene.add(group);
+
+      const lintel = new THREE.Mesh(
+        new THREE.BoxGeometry(10, 7, DOOR_WIDTH + 14),
+        lintelMat
+      );
+      lintel.position.set(0, WALL_HEIGHT - 3.5, 0);
+      group.add(lintel);
+
+      for (const side of [-1, 1]) {
+        const jamb = new THREE.Mesh(
+          new THREE.BoxGeometry(10, WALL_HEIGHT, 7),
+          lintelMat
+        );
+        jamb.position.set(0, WALL_HEIGHT / 2, side * (DOOR_WIDTH / 2 + 3.5));
+        group.add(jamb);
+      }
+
+      const leafW = DOOR_WIDTH / 2 - 1;
+      const leafH = WALL_HEIGHT - 12;
+      const leafGeom = new THREE.BoxGeometry(2.5, leafH, leafW);
+
+      const leftPivot = new THREE.Group();
+      leftPivot.position.set(0, 0, -DOOR_WIDTH / 2);
+      const leftLeaf = new THREE.Mesh(leafGeom, leafMat);
+      leftLeaf.position.set(0, leafH / 2 + 3, leafW / 2);
+      leftPivot.add(leftLeaf);
+      group.add(leftPivot);
+
+      const rightPivot = new THREE.Group();
+      rightPivot.position.set(0, 0, DOOR_WIDTH / 2);
+      const rightLeaf = new THREE.Mesh(leafGeom, leafMat);
+      rightLeaf.position.set(0, leafH / 2 + 3, -leafW / 2);
+      rightPivot.add(rightLeaf);
+      group.add(rightPivot);
+
+      const light = new THREE.SpotLight(0xff7028, 0, 700, Math.PI * 0.22, 0.65, 1.3);
+      light.position.set(34, WALL_HEIGHT * 0.55, 0);
+      light.target.position.set(-300, 2, 0);
+      group.add(light);
+      group.add(light.target);
+
+      const padMat = new THREE.MeshBasicMaterial({
+        map: sharedPadTex,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        toneMapped: false,
+        color: 0xff7430,
+      });
+      const pad = new THREE.Mesh(
+        new THREE.PlaneGeometry(DOOR_WIDTH * 0.95, 220),
+        padMat
+      );
+      pad.rotation.x = -Math.PI / 2;
+      pad.rotation.z = -Math.PI / 2;
+      pad.position.set(-110, 0.6, 0);
+      group.add(pad);
+
+      const paneMat = new THREE.MeshBasicMaterial({
+        color: 0xffc090,
+        transparent: true,
+        opacity: 0,
+        toneMapped: false,
+        side: THREE.DoubleSide,
+      });
+      const pane = new THREE.Mesh(
+        new THREE.PlaneGeometry(DOOR_WIDTH - 6, leafH - 4),
+        paneMat
+      );
+      pane.position.set(2.5, leafH / 2 + 3, 0);
+      pane.rotation.y = Math.PI / 2;
+      group.add(pane);
+
+      doorObjs.push({
+        sin: SINS[i],
+        group, leftPivot, rightPivot, light, paneMat, padMat,
+        x: cx, z: cz,
+        nx: Math.cos(aDoor), nz: Math.sin(aDoor),
+        openness: 1,
+        closed: false,
+      });
+    }
+
+    const boxGroup = new THREE.Group();
+    scene.add(boxGroup);
+    const BOX_W = 38, BOX_H = 32, BOX_D = 38;
+    const boxMat = new THREE.MeshStandardMaterial({
+      color: 0xc88a3a,
+      roughness: 0.95,
+      metalness: 0.0,
+      emissive: 0x1a0f04,
+      emissiveIntensity: 0.18,
+    });
+    const boxMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(BOX_W, BOX_H, BOX_D),
+      boxMat
+    );
+    boxMesh.position.y = BOX_H / 2;
+    boxGroup.add(boxMesh);
+    const boxHitMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(BOX_W + 22, BOX_H + 22, BOX_D + 22),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    boxHitMesh.position.y = BOX_H / 2;
+    boxGroup.add(boxHitMesh);
+    const strapMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.95 });
+    const strap1 = new THREE.Mesh(new THREE.BoxGeometry(BOX_W + 0.6, 1.4, 5), strapMat);
+    strap1.position.y = BOX_H + 0.7;
+    boxGroup.add(strap1);
+    const strap2 = new THREE.Mesh(new THREE.BoxGeometry(5, 1.4, BOX_D + 0.6), strapMat);
+    strap2.position.y = BOX_H + 0.7;
+    boxGroup.add(strap2);
+    const boxLight = new THREE.PointLight(0xffaa50, 0.85, 130, 1.5);
+    boxLight.position.y = BOX_H + 8;
+    boxGroup.add(boxLight);
+
+    const playerGroup = new THREE.Group();
+    scene.add(playerGroup);
+    const playerMat = new THREE.MeshStandardMaterial({
+      color: 0xfff5dd,
+      roughness: 0.4,
+      metalness: 0.05,
+      emissive: 0xfff0c8,
+      emissiveIntensity: 0.95,
+    });
+    const playerMesh = new THREE.Mesh(
+      THREE.CapsuleGeometry
+        ? new THREE.CapsuleGeometry(7, 14, 4, 10)
+        : new THREE.CylinderGeometry(7, 7, 22, 12),
+      playerMat
+    );
+    playerMesh.position.y = 14;
+    playerGroup.add(playerMesh);
+    const playerLight = new THREE.PointLight(0xfff5dd, 1.05, 110, 1.2);
+    playerLight.position.y = 22;
+    playerGroup.add(playerLight);
+
+    scene.add(new THREE.AmbientLight(0x2a1208, 0.35));
+    scene.add(new THREE.HemisphereLight(0x2a1208, 0x040201, 0.25));
+
+    function confine(p) {
+      const r = Math.hypot(p.x, p.z);
+      const maxR = ROOM_RADIUS - 9;
+      if (r > maxR) {
+        p.x = (p.x / r) * maxR;
+        p.z = (p.z / r) * maxR;
+      }
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+    const tmpV = new THREE.Vector3();
+
+    function onPointerMove(clientX, clientY) {
+      ndc.x = (clientX / innerWidth) * 2 - 1;
+      ndc.y = -(clientY / innerHeight) * 2 + 1;
+      raycaster.setFromCamera(ndc, camera);
+      const hits = raycaster.intersectObject(floor);
+      if (hits.length > 0) {
+        const p = hits[0].point;
+        playerGroup.position.x = p.x;
+        playerGroup.position.z = p.z;
+        confine(playerGroup.position);
+        return;
+      }
+      const hit = raycaster.ray.intersectPlane(groundPlaneMath, tmpV);
+      if (hit) {
+        playerGroup.position.x = tmpV.x;
+        playerGroup.position.z = tmpV.z;
+        confine(playerGroup.position);
+      }
+    }
+
+    function onPointerDown(clientX, clientY) {
+      ensureAudio();
+      ndc.x = (clientX / innerWidth) * 2 - 1;
+      ndc.y = -(clientY / innerHeight) * 2 + 1;
+      raycaster.setFromCamera(ndc, camera);
+      const boxHits = raycaster.intersectObject(boxHitMesh);
+      if (boxHits.length > 0) {
+        triggerBubble();
+        boxShake = 1;
+        playBoxClick();
+        boxTargetColor.setHex(0xfff5dd);
+      }
+    }
+
+    canvas.addEventListener('mousemove',  e => onPointerMove(e.clientX, e.clientY));
+    canvas.addEventListener('mousedown',  e => onPointerDown(e.clientX, e.clientY));
+    canvas.addEventListener('touchmove',  e => {
+      if (e.touches && e.touches[0]) onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+    canvas.addEventListener('touchstart', e => {
+      if (e.touches && e.touches[0]) {
+        onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+        onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    const keys = {};
+    addEventListener('keydown', e => {
+      keys[e.key.toLowerCase()] = true;
+      if (['arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+      }
+    });
+    addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+    let audioCtx = null;
+    let masterGain = null;
+    function ensureAudio() {
+      if (audioCtx) return;
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.7;
+        masterGain.connect(audioCtx.destination);
+      } catch(e) {}
+    }
+    function makeNoiseBuffer(duration) {
+      const length = Math.max(1, Math.floor(audioCtx.sampleRate * duration));
+      const buffer = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+      return buffer;
+    }
+    function playDoorClose() {
+      const t0 = audioCtx.currentTime;
+      const click = audioCtx.createBufferSource();
+      click.buffer = makeNoiseBuffer(0.05);
+      const clickF = audioCtx.createBiquadFilter();
+      clickF.type = 'bandpass';
+      clickF.frequency.value = 2400;
+      clickF.Q.value = 4;
+      const clickG = audioCtx.createGain();
+      clickG.gain.setValueAtTime(0.45, t0);
+      clickG.gain.exponentialRampToValueAtTime(0.001, t0 + 0.04);
+      click.connect(clickF).connect(clickG).connect(masterGain);
+      click.start(t0); click.stop(t0 + 0.05);
+
+      const thud = audioCtx.createOscillator();
+      thud.type = 'sine';
+      thud.frequency.setValueAtTime(130, t0);
+      thud.frequency.exponentialRampToValueAtTime(55, t0 + 0.08);
+      const thudG = audioCtx.createGain();
+      thudG.gain.setValueAtTime(0, t0);
+      thudG.gain.linearRampToValueAtTime(0.45, t0 + 0.005);
+      thudG.gain.exponentialRampToValueAtTime(0.001, t0 + 0.10);
+      thud.connect(thudG).connect(masterGain);
+      thud.start(t0); thud.stop(t0 + 0.12);
+    }
+    function playDoorOpen() {
+      const t0 = audioCtx.currentTime;
+      const click = audioCtx.createBufferSource();
+      click.buffer = makeNoiseBuffer(0.04);
+      const clickF = audioCtx.createBiquadFilter();
+      clickF.type = 'bandpass';
+      clickF.frequency.value = 1700;
+      clickF.Q.value = 3.5;
+      const clickG = audioCtx.createGain();
+      clickG.gain.setValueAtTime(0.32, t0);
+      clickG.gain.exponentialRampToValueAtTime(0.001, t0 + 0.035);
+      click.connect(clickF).connect(clickG).connect(masterGain);
+      click.start(t0); click.stop(t0 + 0.04);
+
+      const body = audioCtx.createOscillator();
+      body.type = 'sine';
+      body.frequency.setValueAtTime(170, t0);
+      body.frequency.exponentialRampToValueAtTime(95, t0 + 0.07);
+      const bodyG = audioCtx.createGain();
+      bodyG.gain.setValueAtTime(0, t0);
+      bodyG.gain.linearRampToValueAtTime(0.30, t0 + 0.004);
+      bodyG.gain.exponentialRampToValueAtTime(0.001, t0 + 0.08);
+      body.connect(bodyG).connect(masterGain);
+      body.start(t0); body.stop(t0 + 0.10);
+    }
+    function playDoorSound(opening) {
+      if (!audioCtx) return;
+      if (opening) playDoorOpen();
+      else playDoorClose();
+    }
+    function playBoxClick() {
+      if (!audioCtx) return;
+      const t0 = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      o.type = 'square';
+      o.frequency.setValueAtTime(260, t0);
+      o.frequency.exponentialRampToValueAtTime(160, t0 + 0.08);
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.06, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.12);
+      o.connect(g).connect(masterGain);
+      o.start(t0); o.stop(t0 + 0.13);
+    }
+
+    let bubbleTimer = null;
+    function triggerBubble() {
+      bubble.classList.add('show');
+      bubble.classList.remove('shake');
+      void bubble.offsetWidth;
+      bubble.classList.add('shake');
+      clearTimeout(bubbleTimer);
+      bubbleTimer = setTimeout(() => {
+        bubble.classList.remove('show');
+      }, 2800);
+    }
+    const _proj = new THREE.Vector3();
+    function updateBubblePosition() {
+      _proj.set(
+        boxGroup.position.x + BOX_W * 0.5,
+        boxGroup.position.y + BOX_H,
+        boxGroup.position.z - BOX_D * 0.5
+      );
+      _proj.project(camera);
+      const sx = (_proj.x * 0.5 + 0.5) * innerWidth;
+      const sy = (-_proj.y * 0.5 + 0.5) * innerHeight;
+      bubble.style.left = sx + 'px';
+      bubble.style.top  = sy + 'px';
+    }
+
+    let lastSin = null;
+    function updateSinLabel(sin, opacity) {
+      if (sin && sin !== lastSin) {
+        sinTr.textContent = sin.tr;
+        sinEn.textContent = sin.en;
+        lastSin = sin;
+      }
+      if (opacity > 0.02) {
+        sinLabel.style.opacity = opacity.toFixed(3);
+      } else {
+        sinLabel.style.opacity = '0';
+      }
+    }
+
+    let last = performance.now();
+    let boxShake = 0;
+    let breathe = 0;
+
+    function update(now) {
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      breathe += dt;
+
+      let dx = 0, dz = 0;
+      if (keys['arrowup'] || keys['w']) dz -= 1;
+      if (keys['arrowdown'] || keys['s']) dz += 1;
+      if (keys['arrowleft'] || keys['a']) dx -= 1;
+      if (keys['arrowright'] || keys['d']) dx += 1;
+      if (dx || dz) {
+        const len = Math.hypot(dx, dz);
+        const speed = 240;
+        playerGroup.position.x += (dx / len) * speed * dt;
+        playerGroup.position.z += (dz / len) * speed * dt;
+        confine(playerGroup.position);
+      }
+
+      let nearestSin = null, nearestDist = Infinity;
+      for (let i = 0; i < doorObjs.length; i++) {
+        const door = doorObjs[i];
+        const ddx = playerGroup.position.x - door.x;
+        const ddz = playerGroup.position.z - door.z;
+        const d = Math.hypot(ddx, ddz);
+
+        let t;
+        if (d <= CLOSE_END) t = 0;
+        else if (d >= CLOSE_START) t = 1;
+        else t = (d - CLOSE_END) / (CLOSE_START - CLOSE_END);
+
+        door.openness += (t - door.openness) * Math.min(1, DOOR_LERP * dt);
+        const o = door.openness;
+
+        const wasClosed = door.closed;
+        let isClosed = wasClosed;
+        if (o < 0.14) isClosed = true;
+        else if (o > 0.32) isClosed = false;
+        if (isClosed !== wasClosed) {
+          door.closed = isClosed;
+          playDoorSound(!isClosed);
+        }
+        door.leftPivot.rotation.y = -o * 0.32 * Math.PI;
+        door.rightPivot.rotation.y = +o * 0.32 * Math.PI;
+        door.light.intensity = o * 7;
+        door.paneMat.opacity = o * 0.95;
+        door.padMat.opacity = o * 0.65;
+        if (d < nearestDist) { nearestDist = d; nearestSin = door.sin; }
+      }
+
+      let labelOpacity = 0;
+      if (nearestDist < 140) labelOpacity = 1;
+      else if (nearestDist < 200) labelOpacity = (200 - nearestDist) / 60;
+      updateSinLabel(nearestSin, labelOpacity);
+
+      currentNearestSin = (nearestSin && nearestDist < 200) ? nearestSin : null;
+      let mix = 0;
+      if (nearestDist < 140) mix = 1;
+      else if (nearestDist < 220) mix = (220 - nearestDist) / 80;
+      if (nearestSin && mix > 0) {
+        playerTargetColor.copy(playerBaseColor).lerp(_tmpColor.setHex(nearestSin.hex), mix);
+      } else {
+        playerTargetColor.copy(playerBaseColor);
+      }
+      const colorLerp = Math.min(1, 6 * dt);
+      playerMat.color.lerp(playerTargetColor, colorLerp);
+      playerMat.emissive.copy(playerMat.color);
+      playerLight.color.copy(playerMat.color);
+
+      boxMat.color.lerp(boxTargetColor, Math.min(1, 4 * dt));
+      _tmpColor.copy(boxMat.color).multiplyScalar(0.45);
+      boxMat.emissive.copy(_tmpColor);
+      boxLight.color.copy(boxMat.color);
+
+      boxShake = Math.max(0, boxShake - dt * 1.8);
+      if (boxShake > 0.02) {
+        boxGroup.position.x = (Math.random() - 0.5) * 5 * boxShake;
+        boxGroup.position.z = (Math.random() - 0.5) * 5 * boxShake;
+        boxGroup.position.y = Math.abs(Math.random() - 0.5) * 4 * boxShake;
+      } else {
+        boxGroup.position.x = 0;
+        boxGroup.position.z = 0;
+        boxGroup.position.y = Math.sin(breathe * 1.6) * 1.2;
+      }
+      boxLight.intensity = 0.75 + Math.sin(breathe * 2.2) * 0.18;
+
+      updateBubblePosition();
+    }
+
+    function loop(now) {
+      update(now);
+      renderer.render(scene, camera);
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    function dismissIntro() {
+      if (intro.classList.contains('hidden')) return;
+      ensureAudio();
+      intro.classList.add('hidden');
+      setTimeout(() => intro.style.display = 'none', 950);
+    }
+    startBtn.addEventListener('click', dismissIntro);
+    addEventListener('keydown', dismissIntro, { once: true });
+    canvas.addEventListener('mousedown', dismissIntro, { once: true });
+  })();
+  </script>
+</body>
+</html>
